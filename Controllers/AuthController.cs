@@ -45,15 +45,18 @@ public class AuthController : ControllerBase
         }
 
         // 비밀번호 확인
-        if (user.PasswordHash != loginInfo.PasswordHash)
+        if (user.Password != loginInfo.Password)
         {
             return BadRequest("비밀번호가 틀렸습니다.");
         }
 
-        return Ok(new { 
-            message = "로그인 성공!", 
-            userId = user.Id, 
-            nickname = user.Nickname 
+        return Ok(new
+        {
+            message = "로그인 성공!",
+            userId = user.Id,
+            nickname = user.Nickname,
+            level = user.Level,
+            gold = user.Gold
         });
     }
 }
