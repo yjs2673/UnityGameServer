@@ -59,4 +59,28 @@ public class AuthController : ControllerBase
             gold = user.Gold
         });
     }
+
+    // 골드 업데이트: POST /api/auth/update-gold
+    [HttpPost("update-gold")]
+    public async Task<IActionResult> UpdateGold([FromBody] GoldUpdateDto updateInfo)
+    {
+        // 유저 ID로 DB에서 유저 찾기
+        var user = await _context.Users.FindAsync(updateInfo.Id);
+    
+        if (user == null)
+        {
+            return BadRequest("존재하지 않는 유저입니다.");
+        }
+
+        // 골드 추가
+        user.Gold += updateInfo.Gold;
+
+        // 변경사항 저장
+        await _context.SaveChangesAsync();
+
+        return Ok(new { 
+            message = "골드 업데이트 성공", 
+            currentGold = user.Gold 
+        });
+    }
 }
