@@ -105,10 +105,29 @@ public class AuthController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { 
-            level = user.Level, 
-            exp = user.Exp, 
-            message = "경험치 획득 완료!" 
+        return Ok(new
+        {
+            level = user.Level,
+            exp = user.Exp,
+            message = "경험치 획득 완료!"
         });
+    }
+
+    // 랭킹 조회: GET /api/auth/ranking
+    [HttpGet("ranking")]
+    public async Task<IActionResult> GetRanking()
+    {
+        var rankingList = await _context.Users
+            .OrderByDescending(u => u.Level)    // 레벨 내림차순
+            .ThenByDescending(u => u.Exp)       // 레벨이 같다면 경험치 높은 순
+            .Take(5)                            // 상위 5유저
+            .Select(u => new {                  // 보안을 위해 필요한 정보만 추출
+                u.Id,
+                u.Nickname,
+                u.Level,
+            })
+            .ToListAsync();
+
+        return Ok(rankingList);
     }
 }
