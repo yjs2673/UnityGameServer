@@ -82,11 +82,11 @@ Unity Game Server Project by .NET
 
 ## 🔄 데이터 흐름 (Workflow)
 
-1. **클라이언트 (Unity):** 유저가 입력한 데이터를 JSON으로 말아서 `UnityWebRequest`로 서버에 보낸다.
-2. **서버 (ASP.NET Core):** `Controller`가 요청을 받아 `DTO(Data Transfer Object)`에 담는다.
-3. **데이터베이스 (EF Core + MySQL):** 서버가 DB에 물어보거나 값을 저장한다.
-4. **응답:** 서버가 결과(성공/실패)와 필요한 데이터(닉네임, 골드 등)를 다시 JSON으로 응답한다.
-5. **반영:** 유니티는 받은 JSON을 파싱하여 `GameManager`(싱글톤)에 저장하고 화면을 전환한다.
+1. **클라이언트 (Unity):** 유저가 입력한 데이터를 JSON으로 말아서 `UnityWebRequest`로 서버에 전송
+2. **서버 (ASP.NET Core):** `Controller`가 요청을 받아 `DTO(Data Transfer Object)`에 저장
+3. **데이터베이스 (EF Core + MySQL):** 서버가 DB에 물어보거나 값을 저장
+4. **응답:** 서버가 결과(성공/실패)와 필요한 데이터(닉네임, 골드 등)를 다시 JSON으로 응답
+5. **반영:** 유니티는 받은 JSON을 파싱하여 `GameManager`(싱글톤)에 저장하고 화면을 전환
 6. **소켓 연결**: 유니티 로비 진입 시 서버의 TCP 포트(7777)로 접속 시도
 7. **본인 인증 (Identity)**: 접속 직후 유저 ID와 닉네임을 전송하여 서버 세션 리스트에 등록
 8. **채팅 송수신**: 유저가 메시지 전송 시 서버가 이를 수신하여 모든 접속자에게 복사 전달
