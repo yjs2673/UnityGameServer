@@ -1,4 +1,3 @@
-/* Data Transfer Object */
 namespace MyGameServer.Models;
 
 public class LoginDto

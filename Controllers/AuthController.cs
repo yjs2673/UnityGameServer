@@ -20,24 +20,43 @@ public class AuthController : ControllerBase
 
     // 회원가입: POST /api/auth/register
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] User user)
+    public async Task<IActionResult> Register([FromBody] RegisterDto registerinfo)
     {
+        // 아이디, 닉네임 글자수 체크
+        if (!ModelState.IsValid)
+        {
+            // 첫 번째로 발견된 에러 메시지만 골라서 반환합니다.
+            var errorMessage = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault();
+            return BadRequest(errorMessage);
+        }
+
         // 아이디 중복 체크
-        if (await _context.Users.AnyAsync(u => u.LoginId == user.LoginId))
+        if (await _context.Users.AnyAsync(u => u.LoginId == registerinfo.LoginId))
             return BadRequest("이미 존재하는 아이디입니다.");
 
         // 닉네임 중복 체크
-        if (await _context.Users.AnyAsync(u => u.Nickname == user.Nickname))
+        if (await _context.Users.AnyAsync(u => u.Nickname == registerinfo.Nickname))
             return BadRequest("이미 존재하는 닉네임입니다.");    
 
-        // BCrypt를 이용한 비밀번호 해싱 암호화
-        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+       // DTO 데이터를 실제 User 엔티티로 변환
+        var newUser = new User
+        {
+            LoginId = registerinfo.LoginId,
+            Password = BCrypt.Net.BCrypt.HashPassword(registerinfo.Password), // 암호화 적용
+            Nickname = registerinfo.Nickname,
+            Level = 1,
+            Gold = 0,
+            Exp = 0
+        };
 
         // DB 저장
-        _context.Users.Add(user);
+        _context.Users.Add(newUser);
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "회원가입 성공!", userId = user.Id });
+        return Ok(new { message = "회원가입 성공!" });
     }
 
     // 로그인: POST /api/auth/login
