@@ -29,11 +29,14 @@ public class ChatServer
     private async Task HandleClient(TcpClient client)
     {
         int myUserId = 0;
-        NetworkStream stream = client.GetStream();
-        byte[] buffer = new byte[1024];
+        string myNickname = "Unknown";
+        NetworkStream? stream = null;
 
         try
         {
+            stream = client.GetStream();
+            byte[] buffer = new byte[1024];
+
             while (true)
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
@@ -42,14 +45,18 @@ public class ChatServer
                 string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 Console.WriteLine($"[ChatServer] 수신된 데이터: {message}");
-                
+
                 // 간이 패킷 프로토콜
-                // 처음 접속 시 "ID:5" 형식으로 등록
                 if (message.StartsWith("ID:"))
                 {
+                    var parts = message.Split(':');
+
                     myUserId = int.Parse(message.Split(':')[1]);
+                    myNickname = parts.Length > 2 ? parts[2] : $"User {myUserId}";
+
                     lock (_clients) { _clients[myUserId] = client; }
-                    Console.WriteLine($"[ChatServer] 유저 {myUserId}번 접속 성공");
+
+                    await Broadcast($"<color=cyan>[시스템] {myNickname}님이 입장하셨습니다.</color>");
                     continue;
                 }
 
@@ -59,13 +66,24 @@ public class ChatServer
             }
         }
         catch (Exception ex)
-        {
-            Console.WriteLine($"[Error] {ex.Message}");
+        { 
+            Console.WriteLine($"[ChatServer] 유저 {myNickname} 연결 강제 종료: {ex.Message}");
         }
         finally
         {
             // 연결 종료
-            if (myUserId != 0) lock (_clients) { _clients.Remove(myUserId); }
+            if (myUserId != 0)
+            {
+                lock (_clients)
+                {
+                    if (_clients.ContainsKey(myUserId))
+                    {
+                        _clients.Remove(myUserId);
+                        Console.WriteLine($"[ChatServer] 유저 {myNickname} 리스트에서 제거됨.");
+                    }   
+                }
+                await Broadcast($"<color=orange>[시스템] {myNickname}님이 퇴장하셨습니다.</color>");
+            }
             client.Close();
         }
     }
