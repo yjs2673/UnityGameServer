@@ -21,9 +21,10 @@ public class AuthController : ControllerBase
     {
         // 아이디 중복 체크
         if (await _context.Users.AnyAsync(u => u.LoginId == user.LoginId))
-        {
             return BadRequest("이미 존재하는 아이디입니다.");
-        }
+
+        // BCrypt를 이용한 비밀번호 해싱 암호화
+        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
         // DB 저장
         _context.Users.Add(user);
@@ -39,16 +40,11 @@ public class AuthController : ControllerBase
         // 아이디 확인
         var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == loginInfo.LoginId);
 
-        if (user == null)
-        {
-            return BadRequest("아이디가 존재하지 않습니다.");
-        }
+        if (user == null) return BadRequest("아이디가 존재하지 않습니다.");
 
-        // 비밀번호 확인
-        if (user.Password != loginInfo.Password)
-        {
+        // 비밀번호 확인 -> 해시값 비교
+        if (!BCrypt.Net.BCrypt.Verify(loginInfo.Password, user.Password))
             return BadRequest("비밀번호가 틀렸습니다.");
-        }
 
         return Ok(new
         {
