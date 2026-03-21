@@ -4,13 +4,22 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Distributed;
 
 public class ChatServer
 {
+    private readonly IDistributedCache _cache;
     private TcpListener? _listener;
     // 접속 중인 클라이언트 세션 매핑 (Key: 유저 고유 ID)
     private Dictionary<int, TcpClient> _clients = new Dictionary<int, TcpClient>();
     private readonly int _port = 7777;
+
+    // 생성자를 통해 Program.cs에서 등록된 Redis 캐시를 주입
+    public ChatServer(IDistributedCache cache)
+    {
+        _cache = cache;
+        if (_cache == null) Console.WriteLine("[ChatServer] 에러: Redis 캐시가 주입되지 않았습니다!");
+    }
 
     public async Task Start()
     {
@@ -74,14 +83,26 @@ public class ChatServer
             // 연결 종료
             if (myUserId != 0)
             {
-                lock (_clients)
+                lock (_clients) { _clients.Remove(myUserId); }
+        
+                try 
                 {
-                    if (_clients.ContainsKey(myUserId))
-                    {
-                        _clients.Remove(myUserId);
-                        Console.WriteLine($"[ChatServer] 유저 {myNickname} 리스트에서 제거됨.");
-                    }   
+                    // 중복 로그인 해제
+                    string loginKey = $"login_status:{myUserId}";
+            
+                    // 삭제 시도
+                    Console.WriteLine($"[ChatServer] Redis 키 삭제 시도: {loginKey}");
+            
+                    await _cache.RemoveAsync(loginKey);
+            
+                    // 삭제 성공
+                    Console.WriteLine($"[ChatServer] Redis 키 삭제 완료: {loginKey}");
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ChatServer] Redis 삭제 중 에러: {ex.Message}");
+                }
+
                 await Broadcast($"<color=orange>[시스템] {myNickname}님이 퇴장하셨습니다.</color>");
             }
             client.Close();
