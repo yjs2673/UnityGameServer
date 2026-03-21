@@ -17,8 +17,8 @@ public class ChatServer
     // 생성자를 통해 Program.cs에서 등록된 Redis 캐시를 주입
     public ChatServer(IDistributedCache cache)
     {
-        _cache = cache;
-        if (_cache == null) Console.WriteLine("[ChatServer] 에러: Redis 캐시가 주입되지 않았습니다!");
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        Console.WriteLine("[ChatServer] Redis 캐시가 정상적으로 주입되었습니다.");
     }
 
     public async Task Start()
