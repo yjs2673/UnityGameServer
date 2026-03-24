@@ -15,7 +15,7 @@ public class ShopController : ControllerBase
         _context = context;
     }
 
-    // [1] 상점 아이템 목록 조회: GET /api/shop/items
+    // 상점 아이템 목록 조회: GET /api/shop/items
     [HttpGet("items")]
     public async Task<IActionResult> GetShopItems()
     {
@@ -23,7 +23,7 @@ public class ShopController : ControllerBase
         return Ok(items);
     }
 
-    // [2] 유저 인벤토리 조회: GET /api/shop/inventory/{userId}
+    // 유저 인벤토리 조회: GET /api/shop/inventory/{userId}
     [HttpGet("inventory/{userId}")]
     public async Task<IActionResult> GetInventory(int userId)
     {
@@ -44,7 +44,7 @@ public class ShopController : ControllerBase
         return Ok(inventory);
     }
 
-    // [3] 아이템 구매: POST /api/shop/buy
+    // 아이템 구매: POST /api/shop/buy
     [HttpPost("buy")]
     public async Task<IActionResult> BuyItem([FromBody] BuyItemDto dto)
     {
@@ -53,29 +53,24 @@ public class ShopController : ControllerBase
 
         try
         {
-            // 1. 유저 및 아이템 정보 조회
+            // 유저 및 아이템 정보 조회
             var user = await _context.Users.FindAsync(dto.UserId);
             var item = await _context.Items.FindAsync(dto.ItemId);
 
             if (user == null || item == null)
                 return BadRequest("유저 또는 아이템 정보가 존재하지 않습니다.");
 
-            // 2. 골드 잔액 체크
+            // 골드 잔액 체크
             int totalCost = item.Price * dto.Count;
-            if (user.Gold < totalCost)
-                return BadRequest("골드가 부족합니다.");
+            if (user.Gold < totalCost) return BadRequest("골드가 부족합니다.");
 
-            // 3. 골드 차감
             user.Gold -= totalCost;
 
-            // 4. 인벤토리 업데이트 (이미 있으면 수량 증가, 없으면 새로 추가)
+            // 인벤토리 업데이트 (이미 있으면 수량 증가, 없으면 새로 추가)
             var userItem = await _context.UserItems
                 .FirstOrDefaultAsync(ui => ui.UserId == dto.UserId && ui.ItemId == dto.ItemId);
 
-            if (userItem != null)
-            {
-                userItem.Count += dto.Count;
-            }
+            if (userItem != null) userItem.Count += dto.Count;
             else
             {
                 _context.UserItems.Add(new UserItem
@@ -86,7 +81,7 @@ public class ShopController : ControllerBase
                 });
             }
 
-            // 5. DB 반영 및 확정
+            // DB 반영
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
