@@ -35,6 +35,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 // ChatServer 싱글톤 등록
 builder.Services.AddSingleton<ChatServer>();
 
+// ParkServer 싱글톤 등록
+builder.Services.AddSingleton<ParkServer>();
+
 // 서버 시작 시 Redis 세션을 정리하는 Hosted Service 등록
 builder.Services.AddHostedService<RedisInitService>();
 
@@ -43,6 +46,10 @@ var app = builder.Build();
 // 채팅 서버 인스턴스 가져오기 및 시작
 var chatServer = app.Services.GetRequiredService<ChatServer>();
 _ = chatServer.Start(); 
+
+// 공원 서버 인스턴스 가져오기 및 시작
+var parkServer = app.Services.GetRequiredService<ParkServer>();
+parkServer.Start();
 
 app.UseAuthorization();
 app.MapControllers();

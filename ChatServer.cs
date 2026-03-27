@@ -75,7 +75,7 @@ public class ChatServer
             }
         }
         catch (Exception ex)
-        { 
+        {
             Console.WriteLine($"[ChatServer] 유저 {myNickname} 연결 강제 종료: {ex.Message}");
         }
         finally
@@ -84,17 +84,17 @@ public class ChatServer
             if (myUserId != 0)
             {
                 lock (_clients) { _clients.Remove(myUserId); }
-        
-                try 
+
+                try
                 {
                     // 중복 로그인 해제
                     string loginKey = $"login_status:{myUserId}";
-            
+
                     // 삭제 시도
                     Console.WriteLine($"[ChatServer] Redis 키 삭제 시도: {loginKey}");
-            
+
                     await _cache.RemoveAsync(loginKey);
-            
+
                     // 삭제 성공
                     Console.WriteLine($"[ChatServer] Redis 키 삭제 완료: {loginKey}");
                 }
