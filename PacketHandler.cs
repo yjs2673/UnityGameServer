@@ -11,12 +11,16 @@ public class PacketHandler
         // S_Move 패킷 생성 (브로드캐스트용)
         S_Move res = new S_Move
         {
-            playerId = session.SessionId, 
+            playerId = session.SessionId,
             posX = movePacket.posX,
             posY = movePacket.posY,
             posZ = movePacket.posZ,
-            rotY = movePacket.rotY
+            rotY = movePacket.rotY,
+            isRun = movePacket.isRun,
+            isWalk = movePacket.isWalk
         };
+
+        // Console.WriteLine($"Broadcasting Move from Player {session.SessionId}");
 
         // GameRoom 혹은 ChatServer의 브로드캐스트 로직 호출
         // session을 인자로 넘겨 '나'를 제외하고 보낼 수 있게

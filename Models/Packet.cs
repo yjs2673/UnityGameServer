@@ -18,6 +18,10 @@ public class C_Move : IPacket
     public ushort Protocol => (ushort)PacketId.C_Move;
     public float posX, posY, posZ;
     public float rotY;
+    // --- 애니메이션 상태 추가 ---
+    public bool isRun;
+    public bool isWalk;
+    public bool isJump;
 
     // 역직렬화: 바이트 배열에서 데이터를 뽑아내 변수에 저장 (서버가 받음)
     public void Read(ArraySegment<byte> segment)
@@ -37,6 +41,12 @@ public class C_Move : IPacket
         count += sizeof(float);
         this.rotY = BitConverter.ToSingle(s.Slice(count));
         count += sizeof(float);
+        this.isRun = s[count] != 0;
+        count += 1;
+        this.isWalk = s[count] != 0;
+        count += 1;
+        this.isJump = s[count] != 0;
+        count += 1;
     }
 
     // 직렬화: 변수의 데이터를 바이트 배열로 변환 (클라이언트가 보냄)
@@ -48,22 +58,29 @@ public class C_Move : IPacket
 
         Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
 
-        // 헤더 공간 비워두고 데이터부터 기입
-        count += sizeof(ushort);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.C_Move);
+        // Size (ushort 명시)
+        ushort sizePlaceholder = 0;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), sizePlaceholder); 
         count += sizeof(ushort);
 
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posX);
-        count += sizeof(float);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posY);
-        count += sizeof(float);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posZ);
-        count += sizeof(float);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.rotY);
-        count += sizeof(float);
+        // Protocol (ushort 명시)
+        ushort protocol = (ushort)PacketId.C_Move;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), protocol); 
+        count += sizeof(ushort);
+
+        // Floats
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posX); count += 4;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posY); count += 4;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posZ); count += 4;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.rotY); count += 4;
+
+        // Bools
+        s[count] = (byte)(this.isRun ? 1 : 0); count += 1;
+        s[count] = (byte)(this.isWalk ? 1 : 0); count += 1;
+        s[count] = (byte)(this.isJump ? 1 : 0); count += 1;
 
         // 마지막에 전체 패킷 크기(Size) 기록
-        success &= BitConverter.TryWriteBytes(s.Slice(0), count);
+        success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
 
         if (!success) return null;
         return SendBufferHelper.Close(count);
@@ -97,6 +114,10 @@ public class S_Move : IPacket
     public int playerId;
     public float posX, posY, posZ;
     public float rotY;
+    // --- 애니메이션 상태 추가 ---
+    public bool isRun;
+    public bool isWalk;
+    public bool isJump;
 
     public void Read(ArraySegment<byte> segment)
     {
@@ -116,6 +137,12 @@ public class S_Move : IPacket
         count += sizeof(float);
         this.rotY = BitConverter.ToSingle(s.Slice(count));
         count += sizeof(float);
+        this.isRun = s[count] != 0;
+        count += 1;
+        this.isWalk = s[count] != 0;
+        count += 1;
+        this.isJump = s[count] != 0;
+        count += 1;
     }
 
     public ArraySegment<byte> Write()
@@ -126,22 +153,30 @@ public class S_Move : IPacket
 
         Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
 
-        count += sizeof(ushort); // Size 공간
-        success &= BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Move);
+        // Size placeholder
+        count += sizeof(ushort); 
+
+        // Protocol
+        success &= BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Move); 
         count += sizeof(ushort);
 
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.playerId);
+        // PlayerId (Read에서 Int32를 읽으므로 여기서도 써줘야 함)
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.playerId); 
         count += sizeof(int);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posX);
-        count += sizeof(float);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posY);
-        count += sizeof(float);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posZ);
-        count += sizeof(float);
-        success &= BitConverter.TryWriteBytes(s.Slice(count), this.rotY);
-        count += sizeof(float);
 
-        success &= BitConverter.TryWriteBytes(s.Slice(0), count);
+        // Floats
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posX); count += 4;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posY); count += 4;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.posZ); count += 4;
+        success &= BitConverter.TryWriteBytes(s.Slice(count), this.rotY); count += 4;
+
+        // Bools
+        s[count] = (byte)(this.isRun ? 1 : 0); count += 1;
+        s[count] = (byte)(this.isWalk ? 1 : 0); count += 1;
+        s[count] = (byte)(this.isJump ? 1 : 0); count += 1;
+
+        // 마지막에 전체 패킷 크기(Size) 기록
+        success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
 
         if (!success) return null;
         return SendBufferHelper.Close(count);

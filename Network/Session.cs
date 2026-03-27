@@ -75,7 +75,7 @@ public class Session
         // 나를 제외한 모든 유저에게 leave 알림
         GameRoom.Instance.Broadcast(sendBuff, this);
 
-        Console.WriteLine($"Client Disconnected: {SessionId}");
+        Console.WriteLine($"Client Dicsconnected: {SessionId}");
     
         // 매니저와 룸에서 제거
         SessionManager.Instance.Remove(this);
