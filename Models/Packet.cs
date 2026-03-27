@@ -22,6 +22,7 @@ public class C_Move : IPacket
     public bool isRun;
     public bool isWalk;
     public bool isJump;
+    public bool isDodge;
 
     // 역직렬화: 바이트 배열에서 데이터를 뽑아내 변수에 저장 (서버가 받음)
     public void Read(ArraySegment<byte> segment)
@@ -46,6 +47,8 @@ public class C_Move : IPacket
         this.isWalk = s[count] != 0;
         count += 1;
         this.isJump = s[count] != 0;
+        count += 1;
+        this.isDodge = s[count] != 0;
         count += 1;
     }
 
@@ -78,6 +81,7 @@ public class C_Move : IPacket
         s[count] = (byte)(this.isRun ? 1 : 0); count += 1;
         s[count] = (byte)(this.isWalk ? 1 : 0); count += 1;
         s[count] = (byte)(this.isJump ? 1 : 0); count += 1;
+        s[count] = (byte)(this.isDodge ? 1 : 0); count += 1;
 
         // 마지막에 전체 패킷 크기(Size) 기록
         success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
@@ -118,6 +122,7 @@ public class S_Move : IPacket
     public bool isRun;
     public bool isWalk;
     public bool isJump;
+    public bool isDodge;
 
     public void Read(ArraySegment<byte> segment)
     {
@@ -142,6 +147,8 @@ public class S_Move : IPacket
         this.isWalk = s[count] != 0;
         count += 1;
         this.isJump = s[count] != 0;
+        count += 1;
+        this.isDodge = s[count] != 0;
         count += 1;
     }
 
@@ -174,6 +181,7 @@ public class S_Move : IPacket
         s[count] = (byte)(this.isRun ? 1 : 0); count += 1;
         s[count] = (byte)(this.isWalk ? 1 : 0); count += 1;
         s[count] = (byte)(this.isJump ? 1 : 0); count += 1;
+        s[count] = (byte)(this.isDodge ? 1 : 0); count += 1;
 
         // 마지막에 전체 패킷 크기(Size) 기록
         success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
