@@ -23,6 +23,8 @@ public class C_Move : IPacket
     public bool isWalk;
     public bool isJump;
     public bool isDodge;
+    // --- 캐릭터 색 추가 ---
+    public int colorIndex;
 
     // 역직렬화: 바이트 배열에서 데이터를 뽑아내 변수에 저장 (서버가 받음)
     public void Read(ArraySegment<byte> segment)
@@ -50,6 +52,7 @@ public class C_Move : IPacket
         count += 1;
         this.isDodge = s[count] != 0;
         count += 1;
+        this.colorIndex = BitConverter.ToInt32(s.Slice(count)); count += 4;
     }
 
     // 직렬화: 변수의 데이터를 바이트 배열로 변환 (클라이언트가 보냄)
@@ -82,6 +85,9 @@ public class C_Move : IPacket
         s[count] = (byte)(this.isWalk ? 1 : 0); count += 1;
         s[count] = (byte)(this.isJump ? 1 : 0); count += 1;
         s[count] = (byte)(this.isDodge ? 1 : 0); count += 1;
+
+        // Ints
+        BitConverter.TryWriteBytes(s.Slice(count), this.colorIndex); count += 4;
 
         // 마지막에 전체 패킷 크기(Size) 기록
         success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
@@ -123,6 +129,8 @@ public class S_Move : IPacket
     public bool isWalk;
     public bool isJump;
     public bool isDodge;
+    // --- 캐릭터 색 추가 ---
+    public int colorIndex;
 
     public void Read(ArraySegment<byte> segment)
     {
@@ -150,6 +158,7 @@ public class S_Move : IPacket
         count += 1;
         this.isDodge = s[count] != 0;
         count += 1;
+        this.colorIndex = BitConverter.ToInt32(s.Slice(count)); count += 4;
     }
 
     public ArraySegment<byte> Write()
@@ -182,6 +191,9 @@ public class S_Move : IPacket
         s[count] = (byte)(this.isWalk ? 1 : 0); count += 1;
         s[count] = (byte)(this.isJump ? 1 : 0); count += 1;
         s[count] = (byte)(this.isDodge ? 1 : 0); count += 1;
+
+        // Ints
+        BitConverter.TryWriteBytes(s.Slice(count), this.colorIndex); count += 4;
 
         // 마지막에 전체 패킷 크기(Size) 기록
         success &= BitConverter.TryWriteBytes(s.Slice(0), (ushort)count);
