@@ -1,8 +1,19 @@
 using System;
 using MyGameServer.Models;
+using MyGameServer.Controllers;
 
 public class PacketHandler
 {
+    public static void C_LoginHandler(Session session, IPacket packet)
+    {
+        C_Login loginPacket = packet as C_Login;
+        if (loginPacket == null || session == null) return;
+
+        // 세션 객체의 UserId에 클라이언트가 보낸 실제 DB ID를 할당
+        session.UserId = loginPacket.userId;
+        Console.WriteLine($"[Login] Session {session.SessionId} is now mapped to User {session.UserId}");
+    }
+
     public static void C_MoveHandler(Session session, IPacket packet)
     {
         C_Move movePacket = packet as C_Move;
@@ -23,10 +34,48 @@ public class PacketHandler
             colorIndex = movePacket.colorIndex
         };
 
-        // Console.WriteLine($"Broadcasting Move from Player {session.SessionId}");
-
-        // GameRoom 혹은 ChatServer의 브로드캐스트 로직 호출
-        // session을 인자로 넘겨 '나'를 제외하고 보낼 수 있게
+        // 모든 클라이언트에게 움직임 브로드캐스트
         GameRoom.Instance.Broadcast(res.Write(), session);
+    }
+
+    public static async void C_PickUpItemHandler(Session session, IPacket packet)
+    {
+        C_PickUpItem pickPkt = packet as C_PickUpItem;
+
+        // 아이템 매니저 검증
+        ItemInfo info = ItemManager.Instance.PickUpItem(pickPkt.itemDbId);
+        if (info == null) return; // 이미 누가 먹었거나 없는 아이템
+
+        // 모든 클라이언트에게 아이템 제거 브로드캐스트
+        S_DespawnItem despawn = new S_DespawnItem { itemDbId = info.ItemDbId };
+        GameRoom.Instance.Broadcast(despawn.Write(), null);
+
+        // DB 반영: 소켓 세션에 저장된 UserId를 사용하여 DB에서 유저를 찾기
+        using (AppDbContext db = new AppDbContext()) // DB 컨텍스트 생성
+        {
+            var user = await db.Users.FindAsync(session.UserId);
+            if (user == null) return;
+
+            if (info.ItemType == 0) user.Gold += 10;
+            else
+            {
+                user.Exp += 1;
+                while (user.Exp >= 100)
+                {
+                    user.Exp -= 100;
+                    user.Level += 1;
+                }
+            }
+
+            await db.SaveChangesAsync();
+
+            // 아이템을 먹은 당사자에게만 최신 데이터 전송
+            S_StatUpdate stat = new S_StatUpdate
+            {
+                gold = user.Gold,
+                exp = user.Exp
+            };
+            session.Send(stat.Write());
+        }
     }
 }
