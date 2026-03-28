@@ -13,6 +13,9 @@ public class ParkServer
         _listenSocket.Listen(100);
 
         Console.WriteLine($"[ParkServer] 게임 서버 시작 (Port: {_port})");
+
+        _ = ItemManager.Instance.StartSpawnLoop(); // 비동기로 아이템 생성 루프 시작
+
         AcceptLoop();
     }
 
@@ -26,12 +29,12 @@ public class ParkServer
         try
         {
             Socket clientSocket = _listenSocket.EndAccept(ar);
-            
+
             // 세션 생성 및 등록
             Session session = new Session { Socket = clientSocket };
             session.SessionId = SessionManager.Instance.GenerateId();
             SessionManager.Instance.Add(session);
-            
+
             // 접속하자마자 본인에게 ID 패킷 전송
             S_Login loginPkt = new S_Login { playerId = session.SessionId };
             session.Send(loginPkt.Write());
@@ -45,6 +48,9 @@ public class ParkServer
             Console.WriteLine($"[ParkServer] 유저 입장: {session.SessionId}");
             AcceptLoop();
         }
-        catch (Exception e) { Console.WriteLine($"Accept Error: {e.Message}"); }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Accept Error: {e.Message}");
+        }
     }
 }
