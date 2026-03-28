@@ -37,7 +37,7 @@ public class ItemManager {
                 PosX = (float)(new Random().NextDouble() * 40 - 20),
                 PosZ = (float)(new Random().NextDouble() * 40 - 20)
             };
-            
+
             _items.Add(item.ItemDbId, item);
 
             // 모든 유저에게 생성 패킷 브로드캐스트
@@ -55,13 +55,11 @@ public class ItemManager {
         }
     }
 
-    // 습득 판정
+    // 획득 판정
     public ItemInfo PickUpItem(int itemDbId) {
         lock (_lock) {
-            if (_items.Remove(itemDbId, out ItemInfo item)) {
-                return item; // 성공적으로 먹음
-            }
-            return null; // 이미 누가 먹었음
+            if (_items.Remove(itemDbId, out ItemInfo item)) return item; // 성공적으로 획득
+            return null; // 이미 누가 획득
         }
     }
 }
