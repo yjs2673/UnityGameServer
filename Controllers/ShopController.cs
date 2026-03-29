@@ -4,12 +4,14 @@ using MyGameServer.Models;
 
 namespace MyGameServer.Controllers;
 
+// 상점 관련 API 컨트롤러
 [ApiController]
 [Route("api/[controller]")]
 public class ShopController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly AppDbContext _context; // DB 컨텍스트
 
+    // 생성자
     public ShopController(AppDbContext context)
     {
         _context = context;
@@ -19,7 +21,9 @@ public class ShopController : ControllerBase
     [HttpGet("items")]
     public async Task<IActionResult> GetShopItems()
     {
+        // DB에서 모든 아이템 정보 조회
         var items = await _context.Items.ToListAsync();
+
         return Ok(items);
     }
 
@@ -27,10 +31,10 @@ public class ShopController : ControllerBase
     [HttpGet("inventory/{userId}")]
     public async Task<IActionResult> GetInventory(int userId)
     {
-        var inventory = await _context.UserItems
-            .Where(ui => ui.UserId == userId)
-            .Include(ui => ui.Item) // Item 마스터 정보 조인
-            .Select(ui => new InventoryItemDto
+        var inventory = await _context.UserItems    // DB UserItems 테이블에서
+            .Where(ui => ui.UserId == userId)       // 해당 유저의 아이템만 필터링
+            .Include(ui => ui.Item)                 // Item 마스터 정보 조인
+            .Select(ui => new InventoryItemDto      // DTO로 변환
             {
                 ItemId = ui.ItemId,
                 Name = ui.Item!.Name,
@@ -39,7 +43,7 @@ public class ShopController : ControllerBase
                 ItemType = ui.Item.ItemType,
                 AbilityValue = ui.Item.AbilityValue
             })
-            .ToListAsync();
+            .ToListAsync(); // 결과 리스트로 반환
 
         return Ok(inventory);
     }
@@ -57,21 +61,26 @@ public class ShopController : ControllerBase
             var user = await _context.Users.FindAsync(dto.UserId);
             var item = await _context.Items.FindAsync(dto.ItemId);
 
-            if (user == null || item == null)
-                return BadRequest("유저 또는 아이템 정보가 존재하지 않습니다.");
+            if (user == null)
+                return BadRequest("유저 정보가 존재하지 않습니다.");
+            if (item == null)
+                return BadRequest("아이템 정보가 존재하지 않습니다.");
 
             // 골드 잔액 체크
             int totalCost = item.Price * dto.Count;
-            if (user.Gold < totalCost) return BadRequest("골드가 부족합니다.");
+            if (user.Gold < totalCost)
+                return BadRequest("골드가 부족합니다.");
 
+            // 골드 차감
             user.Gold -= totalCost;
 
-            // 인벤토리 업데이트 (이미 있으면 수량 증가, 없으면 새로 추가)
+            // 인벤토리 업데이트
             var userItem = await _context.UserItems
                 .FirstOrDefaultAsync(ui => ui.UserId == dto.UserId && ui.ItemId == dto.ItemId);
 
-            if (userItem != null) userItem.Count += dto.Count;
-            else
+            if (userItem != null)   // 이미 아이템이 존재하면 수량 증가
+                userItem.Count += dto.Count;
+            else                    // 존재하지 않으면 새 아이템 추가
             {
                 _context.UserItems.Add(new UserItem
                 {
@@ -85,11 +94,7 @@ public class ShopController : ControllerBase
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return Ok(new 
-            { 
-                message = $"{item.Name} 구매 완료!", 
-                currentGold = user.Gold 
-            });
+            return Ok(new { message = $"{item.Name} 구매 완료!", currentGold = user.Gold });
         }
         catch (Exception ex)
         {
