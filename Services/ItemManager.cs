@@ -53,7 +53,7 @@ public class ItemManager
                 posZ = item.PosZ
             };
             Console.WriteLine($"[ItemSpawn] ID:{item.ItemDbId} Type:{item.ItemType} Pos:({item.PosX}, {item.PosZ})");
-            GameRoom.Instance.Broadcast(pkt.Write(), null);
+            GameRoom.Instance.Broadcast(pkt.Write(), new Session());
         }
     }
 
