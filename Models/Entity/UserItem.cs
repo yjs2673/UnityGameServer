@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
+// 유저가 보유한 아이템 정보 모델
 public class UserItem
 {
     public int Id { get; set; }

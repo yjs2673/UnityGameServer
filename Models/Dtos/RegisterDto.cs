@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MyGameServer.Models;
 
+// 회원가입 요청 DTO
 public class RegisterDto
 {
     [Required]

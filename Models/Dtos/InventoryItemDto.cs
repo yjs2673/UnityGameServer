@@ -1,5 +1,6 @@
 namespace MyGameServer.Models;
 
+// 유저 인벤토리 아이템 정보 DTO
 public class InventoryItemDto
 {
     public int ItemId { get; set; }

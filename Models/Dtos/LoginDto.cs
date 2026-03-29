@@ -1,5 +1,6 @@
 namespace MyGameServer.Models;
 
+// 로그인 요청 DTO
 public class LoginDto
 {
     public string LoginId { get; set; } = string.Empty;

@@ -6,14 +6,16 @@ using MyGameServer.Models;
 
 namespace MyGameServer.Controllers;
 
+// 인증 관련 API 컨트롤러
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly IDatabase _redis;
-    private readonly IDistributedCache _cache;
+    private readonly AppDbContext _context;     // DB 컨텍스트
+    private readonly IDatabase _redis;          // Redis 데이터베이스
+    private readonly IDistributedCache _cache;  // Redis 캐시 (로그인 상태 관리용)
 
+    // 생성자
     public AuthController(AppDbContext context, IConnectionMultiplexer redis, IDistributedCache cache)
     {
         _context = context;
@@ -28,7 +30,7 @@ public class AuthController : ControllerBase
         // 아이디, 닉네임 글자수 체크
         if (!ModelState.IsValid)
         {
-            // 첫 번째로 발견된 에러 메시지만 골라서 반환합니다.
+            // ModelState에서 첫 번째 에러 메시지 추출
             var errorMessage = ModelState.Values
                 .SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage)
@@ -48,7 +50,7 @@ public class AuthController : ControllerBase
         var newUser = new User
         {
             LoginId = registerinfo.LoginId,
-            Password = BCrypt.Net.BCrypt.HashPassword(registerinfo.Password), // 암호화 적용
+            Password = BCrypt.Net.BCrypt.HashPassword(registerinfo.Password), // 비밀번호 암호화
             Nickname = registerinfo.Nickname,
             Level = 1,
             Gold = 0,
@@ -57,6 +59,8 @@ public class AuthController : ControllerBase
 
         // DB 저장
         _context.Users.Add(newUser);
+
+        // 변경사항 저장
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "회원가입 성공!" });
@@ -69,27 +73,19 @@ public class AuthController : ControllerBase
         // 공백, 줄바꿈 방지
         string cleanId = loginInfo.LoginId?.Trim() ?? "";
 
-        // var allIds = await _context.Users.Select(u => u.LoginId).ToListAsync();
-        // Console.WriteLine($"[Debug] DB에 존재하는 ID: {string.Join(", ", allIds.Select(id => $"'{id}'({id.Length})"))}");
-        // Console.WriteLine($"[Debug] 찾는 ID: '{cleanId}'({cleanId.Length})");
-
         // 아이디 확인
         var user = await _context.Users.FirstOrDefaultAsync(u => u.LoginId == cleanId);
-
         if (user == null) return BadRequest("아이디가 존재하지 않습니다.");
 
-        // 비밀번호 확인 -> 해시값 비교
+        // 비밀번호 확인: BCrypt 해시값 비교
         if (!BCrypt.Net.BCrypt.Verify(loginInfo.Password, user.Password))
             return BadRequest("비밀번호가 틀렸습니다.");
 
-       // 중복 로그인 체크 -> Redis에서 로그인 상태 확인
+        // 중복 로그인 확인: Redis에서 로그인 상태 확인
         string loginKey = $"login_status:{user.Id}";
         var isOnline = await _cache.GetStringAsync(loginKey);
-
         if (isOnline != null)
-        {
             return BadRequest("이미 접속 중인 계정입니다.");
-        }
 
         // 로그인 성공 시 Redis에 상태 등록 (2시간 후 자동 만료 설정)
         await _cache.SetStringAsync(loginKey, "true", new DistributedCacheEntryOptions
@@ -112,7 +108,9 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] LogoutDto dto)
     {
-        if (dto.UserId <= 0) return BadRequest("유효하지 않은 유저 ID입니다.");
+        // 유효한 유저 ID인지 확인
+        if (dto.UserId <= 0)
+            return BadRequest("유효하지 않은 유저 ID입니다.");
 
         // Redis에서 로그인 상태 삭제
         string loginKey = $"login_status:{dto.UserId}";
@@ -125,8 +123,10 @@ public class AuthController : ControllerBase
     [HttpPost("add-gold")]
     public async Task<IActionResult> AddGold([FromBody] GoldUpdateDto info)
     {
+        // 유저 조회
         var user = await _context.Users.FindAsync(info.Id);
-        if (user == null) return BadRequest("존재하지 않는 유저입니다.");
+        if (user == null)
+            return BadRequest("존재하지 않는 유저입니다.");
 
         // 골드 추가
         user.Gold += info.AddedGold;
@@ -145,8 +145,10 @@ public class AuthController : ControllerBase
     [HttpPost("add-exp")]
     public async Task<IActionResult> AddExp([FromBody] LevelUpdateDto info)
     {
+        // 유저 조회
         var user = await _context.Users.FindAsync(info.Id);
-        if (user == null) return BadRequest("존재하지 않는 유저입니다.");
+        if (user == null)
+            return BadRequest("존재하지 않는 유저입니다.");
 
         // 경험치 추가
         user.Exp += info.AddedExp;
@@ -158,8 +160,8 @@ public class AuthController : ControllerBase
             user.Level += 1;
         }
 
-        await _context.SaveChangesAsync();
         // Redis Sorted Set에 업데이트
+        await _context.SaveChangesAsync();
         await _redis.SortedSetAddAsync("user_ranking", user.Id.ToString(), user.Level);
 
         return Ok(new
@@ -176,12 +178,14 @@ public class AuthController : ControllerBase
     {
         // Redis에서 상위 5명 가져오기 (내림차순)
         var redisResults = await _redis.SortedSetRangeByRankWithScoresAsync("user_ranking", 0, 4, Order.Descending);
+        if (redisResults.Length == 0)
+            return Ok(new List<RankData>());
 
-        if (redisResults.Length == 0) return Ok(new List<RankData>());
-
+        // Redis에서 가져온 유저 ID 리스트 추출
         var userIds = redisResults.Select(r => int.Parse(r.Element.ToString())).ToList();
-
         var userDict = await _context.Users
+
+        // DB에서 유저 ID에 해당하는 닉네임을 한 번에 조회하여 딕셔너리로 변환
         .Where(u => userIds.Contains(u.Id))
         .ToDictionaryAsync(u => u.Id, u => u.Nickname);
 
@@ -195,6 +199,6 @@ public class AuthController : ControllerBase
             };
         }).ToList();
 
-    return Ok(rankingList);
+        return Ok(rankingList);
     }
 }

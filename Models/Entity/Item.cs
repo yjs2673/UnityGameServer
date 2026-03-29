@@ -1,3 +1,4 @@
+// 아이템 정보 모델
 public class Item
 {
     public int Id { get; set; }

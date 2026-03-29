@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MyGameServer.Models;
 
+// 유저 정보 모델
 public class User
 {
     [Key] // 기본키(Primary Key) 설정
