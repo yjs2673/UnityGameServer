@@ -52,7 +52,7 @@ public class PacketHandler
             return;
 
         // 아이템 매니저 검증
-        ItemInfo info = ItemManager.Instance.PickUpItem(pickPkt.itemDbId);
+        ItemInfo? info = ItemManager.Instance.PickUpItem(pickPkt.itemDbId);
         if (info == null) // 이미 누가 먹었거나 없는 아이템
             return; 
 
