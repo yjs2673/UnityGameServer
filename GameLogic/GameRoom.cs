@@ -21,7 +21,7 @@ public class GameRoom
     }
 
     // 나를 제외한 모두에게 패킷 브로드캐스트
-    public void Broadcast(ArraySegment<byte> packet, Session exceptMe)
+    public void Broadcast(ArraySegment<byte> packet, Session? exceptMe)
     {
         lock (_lock)
         {

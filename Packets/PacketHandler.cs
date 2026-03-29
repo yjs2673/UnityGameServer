@@ -58,7 +58,7 @@ public class PacketHandler
 
         // 모든 클라이언트에게 아이템 제거 브로드캐스트
         S_DespawnItem despawn = new S_DespawnItem { itemDbId = info.ItemDbId };
-        GameRoom.Instance.Broadcast(despawn.Write(), session);
+        GameRoom.Instance.Broadcast(despawn.Write(), null);
 
         // DB 반영: 소켓 세션에 저장된 UserId를 사용하여 DB에서 유저를 찾기
         using (AppDbContext db = new AppDbContext()) // DB 컨텍스트 생성

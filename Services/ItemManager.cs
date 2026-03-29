@@ -19,13 +19,13 @@ public class ItemManager
     Dictionary<int, ItemInfo> _items = new Dictionary<int, ItemInfo>(); // 현재 존재하는 아이템들 (Key: ItemDbId)
     object _lock = new object();
 
-    // 2초마다 랜덤 위치에 아이템 생성
+    // 3초마다 랜덤 위치에 아이템 생성
     public async Task StartSpawnLoop()
     {
         while (true)
         {
             SpawnRandomItem();
-            await Task.Delay(2000); // 2초 대기
+            await Task.Delay(3000); // 3초 대기
         }
     }
 
@@ -53,7 +53,7 @@ public class ItemManager
                 posZ = item.PosZ
             };
             Console.WriteLine($"[ItemSpawn] ID:{item.ItemDbId} Type:{item.ItemType} Pos:({item.PosX}, {item.PosZ})");
-            GameRoom.Instance.Broadcast(pkt.Write(), new Session());
+            GameRoom.Instance.Broadcast(pkt.Write(), null);
         }
     }
 
