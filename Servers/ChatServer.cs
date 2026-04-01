@@ -36,7 +36,7 @@ public class ChatServer
         }
     }
 
-    // 개별 클라이언트 처리: 로그인 정보 수신 및 메시지 브로드캐스팅
+    // 개별 클라이언트 처리: 로그인 정보 수신 및 메시지 전송
     private async Task HandleClient(TcpClient client)
     {
         int myUserId = 0;
@@ -80,13 +80,13 @@ public class ChatServer
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) // 세션 유지 시간
                     });
 
-                    await Broadcast($"<color=cyan>[시스템] {myNickname}님이 입장하셨습니다.</color>");
+                    await SendMessage($"<color=cyan>[시스템] {myNickname}님이 입장하셨습니다.</color>");
                     continue;
                 }
 
-                // 일반 메시지 브로드캐스팅
+                // 일반 메시지 전송
                 Console.WriteLine($"[ChatServer] {myUserId}: {message}");
-                await Broadcast(message);
+                await SendMessage(message);
             }
         }
         catch (Exception ex)
@@ -118,8 +118,8 @@ public class ChatServer
                     Console.WriteLine($"[ChatServer] Redis 삭제 중 에러: {ex.Message}");
                 }
 
-                // 퇴장 메시지 브로드캐스팅
-                await Broadcast($"<color=orange>[시스템] {myNickname}님이 퇴장하셨습니다.</color>");
+                // 퇴장 메시지 전송
+                await SendMessage($"<color=orange>[시스템] {myNickname}님이 퇴장하셨습니다.</color>");
             }
 
             // 소켓 연결 종료
@@ -127,8 +127,8 @@ public class ChatServer
         }
     }
 
-    // 모든 클라이언트에게 메시지 브로드캐스팅
-    private async Task Broadcast(string message)
+    // 모든 클라이언트에게 메시지 전송
+    private async Task SendMessage(string message)
     {
         byte[] data = Encoding.UTF8.GetBytes(message);  // 메시지를 바이트 배열로 변환
         List<Task> sendTasks = new List<Task>();        // 모든 클라이언트에게 메시지 전송 (비동기)
