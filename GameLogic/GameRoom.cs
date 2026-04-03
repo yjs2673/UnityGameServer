@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 // 게임 룸(Park) 관리 클래스
@@ -20,7 +21,7 @@ public class GameRoom
         lock (_lock) { _sessions.Remove(session); }
     }
 
-    // 나를 제외한 모두에게 패킷 브로드캐스트
+    // 패킷 브로드캐스트
     public void Broadcast(ArraySegment<byte> packet, Session? exceptMe)
     {
         lock (_lock)

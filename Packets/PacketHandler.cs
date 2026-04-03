@@ -41,7 +41,7 @@ public class PacketHandler
             colorIndex = movePacket.colorIndex
         };
 
-        // 모든 클라이언트에게 움직임 브로드캐스트
+        // 자신 제외 모든 클라이언트에게 움직임 브로드캐스트
         GameRoom.Instance.Broadcast(res.Write(), session);
     }
 
