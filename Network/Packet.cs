@@ -416,6 +416,8 @@ public class C_Voice : IPacket
             voiceData = new byte[dataSize];
             Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
         }
+        else // 음성 데이터가 없거나 잘못된 경우 빈 배열 할당
+            voiceData = Array.Empty<byte>(); // 안전하게 빈 배열 할당
     }
 
     public ArraySegment<byte> Write()

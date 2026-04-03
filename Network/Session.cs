@@ -91,6 +91,8 @@ public class Session
     {
         if (buffer.Array == null)
             return;
+        if (buffer.Count < 4)       // 최소 헤더 크기 체크
+            return;
 
         try
         {
