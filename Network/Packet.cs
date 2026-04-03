@@ -1,10 +1,10 @@
 // 패킷 구조 정의
 public enum PacketId : ushort
 {
-    C_Move = 1,
-    S_Move = 2,
-    C_Login = 3,        // 유저 ID
-    S_Login = 4,
+    C_Login = 1,        // 유저 ID
+    S_Login = 2,
+    C_Move = 3,
+    S_Move = 4,
     S_Leave = 5,
     S_SpawnItem = 6,    // 아이템 생성 (서버 -> 클라)
     C_PickUpItem = 7,   // 아이템 습득 시도 (클라 -> 서버)
@@ -47,6 +47,55 @@ public class SendBufferHelper
             UsedSize = 0;
 
         return segment; // 실제로 사용된 크기만큼 반환
+    }
+}
+
+public class C_Login : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.C_Login;
+    public int userId;          // 클라이언트가 로그인 시 자신의 DB ID를 서버에 전달 (세션과 유저를 매핑하기 위해)
+    public void Read(ArraySegment<byte> segment)
+    {
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        userId = BitConverter.ToInt32(s.Slice(4)); // Size(2) + Protocol(2)
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2; // Size 예약
+        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), userId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
+
+        return SendBufferHelper.Close(count);
+    }
+}
+
+public class S_Login : IPacket
+{
+    public ushort Protocol => (ushort)PacketId.S_Login;
+    public int playerId; // 서버가 클라이언트에게 할당해주는 고유 세션 ID (클라이언트는 이걸로 자신을 인식)
+
+    public void Read(ArraySegment<byte> segment)
+    {
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+        this.playerId = BitConverter.ToInt32(s.Slice(4)); // Size(2) + Protocol(2)
+    }
+
+    public ArraySegment<byte> Write()
+    {
+        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
+        count += 2; // Size 예약
+        BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Login); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), this.playerId); count += 4;
+        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
+
+        return SendBufferHelper.Close(count);
     }
 }
 
@@ -124,7 +173,7 @@ public class C_Move : IPacket
 
         if (!success) // 직렬화 실패 시 빈 패킷 반환
             return new ArraySegment<byte>();
-            
+
         return SendBufferHelper.Close(count);
     }
 }
@@ -206,56 +255,6 @@ public class S_Move : IPacket
 
         if (!success) // 직렬화 실패 시 빈 패킷 반환
             return new ArraySegment<byte>();
-
-        return SendBufferHelper.Close(count);
-    }
-}
-
-public class C_Login : IPacket
-{
-    public ushort Protocol => (ushort)PacketId.C_Login;
-    public int userId; // 클라이언트가 로그인 시 자신의 DB ID를 서버에 전달 (세션과 유저를 매핑하기 위해)
-
-    public void Read(ArraySegment<byte> segment)
-    {
-        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-        userId = BitConverter.ToInt32(s.Slice(4)); // Size(2) + Protocol(2)
-    }
-
-    public ArraySegment<byte> Write()
-    {
-        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-        ushort count = 0;
-        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
-        count += 2; // Size 예약
-        BitConverter.TryWriteBytes(s.Slice(count), Protocol); count += 2;
-        BitConverter.TryWriteBytes(s.Slice(count), userId); count += 4;
-        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
-
-        return SendBufferHelper.Close(count);
-    }
-}
-
-public class S_Login : IPacket
-{
-    public ushort Protocol => (ushort)PacketId.S_Login;
-    public int playerId; // 서버가 클라이언트에게 할당해주는 고유 세션 ID (클라이언트는 이걸로 자신을 인식)
-
-    public void Read(ArraySegment<byte> segment)
-    {
-        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
-        this.playerId = BitConverter.ToInt32(s.Slice(4)); // Size(2) + Protocol(2)
-    }
-
-    public ArraySegment<byte> Write()
-    {
-        ArraySegment<byte> segment = SendBufferHelper.Open(4096);
-        ushort count = 0;
-        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
-        count += 2; // Size 예약
-        BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Login); count += 2;
-        BitConverter.TryWriteBytes(s.Slice(count), this.playerId); count += 4;
-        BitConverter.TryWriteBytes(s.Slice(0), count); // 최종 Size 기록
 
         return SendBufferHelper.Close(count);
     }
@@ -402,7 +401,7 @@ public class S_StatUpdate : IPacket
 public class C_Voice : IPacket
 {
     public ushort Protocol => (ushort)PacketId.C_Voice;
-    public byte[] voiceData = new byte[0];
+    public byte[]? voiceData;
 
     public void Read(ArraySegment<byte> segment)
     {
@@ -412,7 +411,7 @@ public class C_Voice : IPacket
 
         // 헤더(4)를 제외한 나머지 모든 바이트가 음성 데이터
         int dataSize = size - count;
-        if (dataSize > 0)
+        if (dataSize > 0 && segment.Offset + count + dataSize <= segment.Array.Length)
         {
             voiceData = new byte[dataSize];
             Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
@@ -436,18 +435,26 @@ public class C_Voice : IPacket
 public class S_Voice : IPacket
 {
     public ushort Protocol => (ushort)PacketId.S_Voice;
-    public int playerId;     
-    public byte[] voiceData = new byte[0];
+    public int playerId;
+    public string? playerNickname;
+    public byte[]? voiceData;
 
     public void Read(ArraySegment<byte> segment)
     {
         ushort count = 0;
-        ushort size = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
-        ushort id = BitConverter.ToUInt16(segment.Array, segment.Offset + count); count += 2;
-        this.playerId = BitConverter.ToInt32(segment.Array, segment.Offset + count); count += 4;
+        ReadOnlySpan<byte> s = new ReadOnlySpan<byte>(segment.Array, segment.Offset, segment.Count);
+
+        ushort size = BitConverter.ToUInt16(s.Slice(count)); count += 2;
+        ushort id = BitConverter.ToUInt16(s.Slice(count)); count += 2;
+
+        playerId = BitConverter.ToInt32(s.Slice(count)); count += 4;
+
+        ushort nameLen = BitConverter.ToUInt16(s.Slice(count)); count += 2;
+        this.playerNickname = System.Text.Encoding.UTF8.GetString(s.Slice(count, nameLen));
+        count += nameLen;
 
         int dataSize = size - count;
-        if (dataSize > 0)
+        if (dataSize > 0 && segment.Offset + count + dataSize <= segment.Array.Length)
         {
             voiceData = new byte[dataSize];
             Array.Copy(segment.Array, segment.Offset + count, voiceData, 0, dataSize);
@@ -456,15 +463,29 @@ public class S_Voice : IPacket
 
     public ArraySegment<byte> Write()
     {
-        ushort size = (ushort)(4 + 4 + voiceData.Length); 
-        byte[] sendBuff = new byte[size];
+        byte[] nameBytes = System.Text.Encoding.UTF8.GetBytes(this.playerNickname ?? "");
+        ushort size = (ushort)(4 + 4 + 2 + nameBytes.Length + voiceData.Length);
+        
+        ArraySegment<byte> segment = SendBufferHelper.Open(size + 100);
+        ushort count = 0;
+        Span<byte> s = new Span<byte>(segment.Array, segment.Offset, segment.Count);
 
-        ushort pos = 0;
-        Array.Copy(BitConverter.GetBytes(size), 0, sendBuff, pos, 2); pos += 2;
-        Array.Copy(BitConverter.GetBytes((ushort)PacketId.S_Voice), 0, sendBuff, pos, 2); pos += 2;
-        Array.Copy(BitConverter.GetBytes(playerId), 0, sendBuff, pos, 4); pos += 4;
-        Array.Copy(voiceData, 0, sendBuff, pos, voiceData.Length);
+        BitConverter.TryWriteBytes(s.Slice(count), size); count += 2;
+        BitConverter.TryWriteBytes(s.Slice(count), (ushort)PacketId.S_Voice); count += 2;
+        
+        BitConverter.TryWriteBytes(s.Slice(count), this.playerId); count += 4;
 
-        return new ArraySegment<byte>(sendBuff);
+        // Nickname 기록
+        BitConverter.TryWriteBytes(s.Slice(count), (ushort)nameBytes.Length); count += 2;
+        nameBytes.CopyTo(s.Slice(count)); count += (ushort)nameBytes.Length;
+
+        // Voice Data 기록
+        if (voiceData.Length > 0)
+        {
+            voiceData.CopyTo(s.Slice(count));
+            count += (ushort)voiceData.Length;
+        }
+
+        return SendBufferHelper.Close(count);
     }
 }
