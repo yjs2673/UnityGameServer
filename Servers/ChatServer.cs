@@ -50,12 +50,12 @@ public class ChatServer
 
             while (true)
             {
-                 // 클라이언트로부터 데이터 수신 (비동기)
+                // 클라이언트로부터 데이터 수신 (비동기)
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                 if (bytesRead == 0)
                     break; // 연결 종료
 
-                 // 수신된 메시지를 문자열로 변환
+                // 수신된 메시지를 문자열로 변환
                 string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 Console.WriteLine($"[ChatServer] 수신된 데이터: {message}");
@@ -74,7 +74,7 @@ public class ChatServer
                     // Redis 중복 방지 위해 로그인 상태 등록
                     string loginKey = $"login_status:{myUserId}";
 
-                    // 키를 새로 생성하는 게 아니라 동일한 키에 현재 소켓 연결 상태를 기록/갱신
+                    // Redis에 로그인 상태 저장 (키-값 저장, TTL 1시간)
                     await _cache.SetStringAsync(loginKey, "Connected", new DistributedCacheEntryOptions
                     {
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) // 세션 유지 시간
