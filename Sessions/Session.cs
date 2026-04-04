@@ -33,7 +33,7 @@ public class Session
     {
         try
         {
-            // 1. 소켓으로부터 데이터를 읽음
+            // 소켓으로부터 데이터를 읽기
             int bytesRead = Socket?.EndReceive(ar) ?? 0;
             if (bytesRead <= 0)
             {
@@ -47,24 +47,22 @@ public class Session
 
             while (true)
             {
-                // [에러 해결] 최소 헤더(4바이트)가 모였는지 확인
+                // 최소 헤더가 모였는지 확인
                 if (_recvBytes - processPos < 4) break;
 
-                // 헤더에서 패킷 사이즈 읽기 (Size는 2바이트 ushort)
+                // 헤더에서 패킷 사이즈 읽기
                 ushort size = BitConverter.ToUInt16(_recvBuffer, processPos);
 
-                // [핵심] 패킷 전체 데이터가 아직 다 안 왔으면 다음 수신을 기다림 (루프 탈출)
+                // 패킷 전체 데이터가 아직 다 안 왔으면 다음 수신 대기
                 if (_recvBytes - processPos < size) break;
 
-                // [에러 해결] OnProcessPacket 대신 질문자님의 패킷 처리 함수 이름으로 변경
-                // 질문자님의 코드에서는 'OnReceivePacket'일 확률이 높습니다.
                 ArraySegment<byte> packetSegment = new ArraySegment<byte>(_recvBuffer, processPos, size);
                 OnReceivePacket(packetSegment); 
 
                 processPos += size;
             }
 
-            // 3. 처리한 패킷만큼 버퍼에서 제거하고 남은 데이터를 앞으로 밀기
+            // 처리한 패킷만큼 버퍼에서 제거하고 남은 데이터 앞으로 이동
             if (processPos > 0)
             {
                 int remaining = _recvBytes - processPos;
@@ -75,8 +73,7 @@ public class Session
                 _recvBytes = remaining;
             }
 
-            // 4. [에러 해결] 다음 수신을 위해 BeginReceive 호출
-            // 버퍼의 비어있는 공간(_recvBytes 위치부터)에 데이터를 채우도록 설정
+            // 버퍼의 비어있는 공간(_recvBytes)부터 데이터 수신 대기
             Socket?.BeginReceive(_recvBuffer, _recvBytes, _recvBuffer.Length - _recvBytes, SocketFlags.None, OnReceive, null);
         }
         catch (Exception ex)
