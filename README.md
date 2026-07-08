@@ -1,4 +1,4 @@
-# UnityGameServer
+# Server Arena
 Unity Game Server Project by .NET
 
 [시연 영상](https://www.youtube.com/watch?v=16Unk36lOfw&feature=youtu.be)
